@@ -10,25 +10,19 @@ sub on_sys_init()
 
 	kp.returnlinesmapping="9,32,11"
 	kp.enabled=YES
-		
-	mqtt_start()
-	if mqtt_connect(MQTT_SERVER_HOST,1883,MQTT_NAME,MQTT_PASSWORD,60)=NG then
-		'In here, we cannot make a tcp link to the host ...
-		connect_lost=YES
-	end if
+	
+	dns_start(sock_get("DNS"))
+	mqtt_start(PL_SOCK_INTERFACE_NET,MQTT_SERVER_HOST,1883,MQTT_NAME,MQTT_PASSWORD,MQTT_NAME,false)
+	
 end sub
 
 sub on_sys_timer()
-	if connect_lost=YES then
-		'Try to establish the tcp link with mqtt host ...
-		if mqtt_reconnect()=OK then
-			connect_lost=NO
-		end if
-	end if
+	dns_proc_timer()
 	mqtt_proc_timer()
 end sub
 
 sub on_sock_data_arrival()
+	dns_proc_data()
 	mqtt_proc_data()
 end sub
 
@@ -55,4 +49,8 @@ sub on_kp(key_event as enum pl_kp_event_codes, key_code as byte)
 			mqtt_publish("LED/GREEN","0",QOS_EXACTLY_ONCE)
 		end if
 	end select
+end sub
+
+sub on_sock_event(newstate as enum pl_sock_state, newstatesimple as enum pl_sock_state_simple)
+	mqtt_sock_event(newstate, newstatesimple)
 end sub
